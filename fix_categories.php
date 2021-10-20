@@ -14,16 +14,7 @@ $products = $db->Execute($products);
 $categories = [];
 $removed = [];
 $final = "";
-function trav($needle,$removed,$cat){
-        $arr = $removed;
-        $pos = array_search($needle, $arr);
-        if($pos == true){
-                unset($arr[$pos]);
-                trav($cat[$pos]["parent_id"],$arr,$cat);
-        }
-        return $arr;    
-}
-function mySort($products){
+function mySort($products,$removed){
         foreach ($products as $value) {
                 if(($value["products_id"] === null || $value["products_id"] ===0 || $value["products_status"] == 0)){
                         $removed[$value["categories_id"]] = $value["categories_id"];
@@ -31,13 +22,16 @@ function mySort($products){
                 }
                 else
                         $categories[$value["categories_id"]] = $value;
-                $x = $removed;
-                $removed = trav($value["parent_id"],$x,$categories);
+                $pos = array_search($value["parent_id"], $removed);
+                if($pos == true){
+                        unset($removed[$pos]);
+                        mySort($categories[$pos]["parent_id"],$removed);
+                }
         }
-        $final = $x;
+        $final = $removed;
         return implode(",",$final);
 }
-$d = mySort($products);
+$d = mySort($products,$removed);
 $updateQuery = "UPDATE " . TABLE_CATEGORIES . " SET categories_status = 0 WHERE categories_id in (". $d .")";
 if($d!=""){
         $db->Execute($updateQuery);
